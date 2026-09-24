@@ -1,0 +1,43 @@
+name: ReclaimX Auto Poster
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Pull latest
+        run: |
+          git config user.name "ReclaimX Bot"
+          git config user.email "bot@reclaimx.local"
+          git pull --rebase || true
+
+      - name: Run poster
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          TIMEZONE: Africa/Cairo
+        run: python bot.py
+
+      - name: Commit state
+        run: |
+          git add state.json || true
+          git diff --staged --quiet || git commit -m "chore: update posting state [skip ci]"
+          git push || true
